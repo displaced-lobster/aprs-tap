@@ -27,7 +27,7 @@ impl std::str::FromStr for Temperature {
     type Err = std::num::ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse::<i32>().map(|t| Self::Fahrenheit(t))
+        s.parse::<i32>().map(Self::Fahrenheit)
     }
 }
 
@@ -60,16 +60,15 @@ impl Weather {
 
         match (self.wind_dir, self.wind_speed) {
             (Some(dir), Some(spd)) => {
-                let compass = Direction::from(dir);
                 let gust = self
                     .wind_gust
                     .filter(|&g| g > 0)
                     .map(|g| format!(" gusts {g} mph"))
                     .unwrap_or_default();
                 if spd == 0 {
-                    parts.push(format!("Calm ({compass}){gust}"));
+                    parts.push(format!("Calm ({dir}){gust}"));
                 } else {
-                    parts.push(format!("Wind: {compass} {spd} mph{gust}"));
+                    parts.push(format!("Wind: {dir} {spd} mph{gust}"));
                 }
             }
             (None, Some(spd)) => parts.push(format!("Wind: {spd} mph")),
@@ -80,20 +79,20 @@ impl Weather {
             parts.push(format!("{p:.1} hPa"));
         }
 
-        if let Some(r) = self.rain_1h {
-            if r > 0.0 {
-                parts.push(format!("Rain 1h: {r:.2}\""));
-            }
+        if let Some(r) = self.rain_1h
+            && r > 0.0
+        {
+            parts.push(format!("Rain 1h: {r:.2}\""));
         }
-        if let Some(r) = self.rain_24h {
-            if r > 0.0 {
-                parts.push(format!("Rain 24h: {r:.2}\""));
-            }
+        if let Some(r) = self.rain_24h
+            && r > 0.0
+        {
+            parts.push(format!("Rain 24h: {r:.2}\""));
         }
-        if let Some(r) = self.rain_midnight {
-            if r > 0.0 {
-                parts.push(format!("Rain since midnight: {r:.2}\""));
-            }
+        if let Some(r) = self.rain_midnight
+            && r > 0.0
+        {
+            parts.push(format!("Rain since midnight: {r:.2}\""));
         }
 
         parts.join("  ")
@@ -111,8 +110,8 @@ impl From<&str> for Weather {
             w.wind_speed = s.get(4..7).and_then(|v| v.parse().ok());
         }
 
-        for i in 0..b.len() {
-            match b[i] {
+        for (i, byte) in b.iter().enumerate() {
+            match byte {
                 b'c' if w.wind_dir.is_none() => {
                     w.wind_dir = s.get(i + 1..i + 4).and_then(|v| v.parse().ok());
                 }

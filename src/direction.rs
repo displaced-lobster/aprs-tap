@@ -53,7 +53,7 @@ impl std::str::FromStr for Direction {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse::<u16>().map_err(|_| ()).map(|v| Self::from(v))
+        s.parse::<u16>().map_err(|_| ()).map(Self::from)
     }
 }
 

@@ -48,7 +48,7 @@ impl<'a> Position<'a> {
 
         // Bytes 1-8 (lat+lon) must be in printable base-91 range ('!' to '{', 33–123)
         for &byte in &b[1..9] {
-            if byte < 33 || byte > 123 {
+            if !(33..=123).contains(&byte) {
                 return None;
             }
         }

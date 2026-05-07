@@ -59,18 +59,18 @@ fn extract_altitude(comment: &str) -> (Option<i32>, String) {
     if let Some(pos) = comment.find("/A=") {
         let after = &comment[pos + 3..];
         let digit_count = after.chars().take_while(|c| c.is_ascii_digit()).count();
-        if digit_count >= 6 {
-            if let Ok(feet) = after[..digit_count].parse::<i32>() {
-                let before = comment[..pos].trim_end();
-                let rest = comment[pos + 3 + digit_count..].trim_start();
-                let cleaned = match (before.is_empty(), rest.is_empty()) {
-                    (true, true) => String::new(),
-                    (true, false) => rest.to_string(),
-                    (false, true) => before.to_string(),
-                    (false, false) => format!("{} {}", before, rest),
-                };
-                return (Some(feet), cleaned.trim().to_string());
-            }
+        if digit_count >= 6
+            && let Ok(feet) = after[..digit_count].parse::<i32>()
+        {
+            let before = comment[..pos].trim_end();
+            let rest = comment[pos + 3 + digit_count..].trim_start();
+            let cleaned = match (before.is_empty(), rest.is_empty()) {
+                (true, true) => String::new(),
+                (true, false) => rest.to_string(),
+                (false, true) => before.to_string(),
+                (false, false) => format!("{} {}", before, rest),
+            };
+            return (Some(feet), cleaned.trim().to_string());
         }
     }
     (None, comment.trim().to_string())
