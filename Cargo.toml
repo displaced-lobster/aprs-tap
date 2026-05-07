@@ -3,7 +3,22 @@ name = "aprs-tap"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+server = ["dep:axum", "dep:serde", "dep:tokio"]
+
 [dependencies]
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 colored = "2"
 chrono = "0.4"
+axum = { version = "0.8", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+
+[[bin]]
+name = "cli"
+path = "src/bin/cli.rs"
+
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+required-features = ["server"]
