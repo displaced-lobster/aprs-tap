@@ -49,6 +49,14 @@ impl From<u16> for Direction {
     }
 }
 
+impl std::str::FromStr for Direction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse::<u16>().map_err(|_| ()).map(|v| Self::from(v))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

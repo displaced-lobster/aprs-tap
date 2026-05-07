@@ -1,6 +1,36 @@
+#[derive(Clone, Copy, Debug)]
+pub struct Latitude(pub f64);
+
+impl From<f64> for Latitude {
+    fn from(value: f64) -> Self {
+        Latitude(value)
+    }
+}
+
+impl std::fmt::Display for Latitude {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format_coord(self.0, 'N', 'S'))
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Longitude(pub f64);
+
+impl From<f64> for Longitude {
+    fn from(value: f64) -> Self {
+        Longitude(value)
+    }
+}
+
+impl std::fmt::Display for Longitude {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format_coord(self.0, 'E', 'W'))
+    }
+}
+
 pub struct Position<'a> {
-    pub lat: f64,
-    pub lon: f64,
+    pub lat: Latitude,
+    pub lon: Longitude,
     pub sym_table: char,
     pub sym_code: char,
     pub comment: &'a str,
@@ -46,8 +76,8 @@ impl<'a> Position<'a> {
         let comment = if data.len() > 12 { &data[13..] } else { "" };
 
         Some(Self {
-            lat,
-            lon,
+            lat: lat.into(),
+            lon: lon.into(),
             sym_table,
             sym_code,
             comment,
@@ -80,8 +110,8 @@ impl<'a> Position<'a> {
         let comment = if data.len() > 19 { &data[19..] } else { "" };
 
         Some(Self {
-            lat,
-            lon,
+            lat: lat.into(),
+            lon: lon.into(),
             sym_table,
             sym_code,
             comment,
@@ -103,6 +133,11 @@ impl<'a> TryFrom<&'a str> for Position<'a> {
     }
 }
 
+fn format_coord(deg: f64, pos: char, neg: char) -> String {
+    let dir = if deg >= 0.0 { pos } else { neg };
+    format!("{:.4}°{}", deg.abs(), dir)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -117,8 +152,8 @@ mod tests {
     fn uncompressed_pos_north_west() {
         // 4854.41N/12332.35W_ (VA7ASI-WX weather station)
         let p = Position::try_from("4854.41N/12332.35W_012/000g003t055").unwrap();
-        assert!(approx(p.lat, 48.9068), "lat={}", p.lat);
-        assert!(approx(p.lon, -123.5392), "lon={}", p.lon);
+        assert!(approx(p.lat.0, 48.9068), "lat={:?}", p.lat);
+        assert!(approx(p.lon.0, -123.5392), "lon={:?}", p.lon);
         assert_eq!(p.sym_table, '/');
         assert_eq!(p.sym_code, '_');
         assert!(p.comment.starts_with("012/000"));
@@ -127,16 +162,16 @@ mod tests {
     #[test]
     fn uncompressed_pos_south_west() {
         let p = Position::try_from("3322.50S/07030.00W>hello").unwrap();
-        assert!(approx(p.lat, -(33.0 + 22.5 / 60.0)), "lat={}", p.lat);
-        assert!(approx(p.lon, -(70.0 + 30.0 / 60.0)), "lon={}", p.lon);
+        assert!(approx(p.lat.0, -(33.0 + 22.5 / 60.0)), "lat={:?}", p.lat);
+        assert!(approx(p.lon.0, -(70.0 + 30.0 / 60.0)), "lon={:?}", p.lon);
     }
 
     #[test]
     fn uncompressed_pos_east_longitude() {
         // 51°30'N, 0°15'E
         let p = Position::try_from("5130.00N/00015.00E>").unwrap();
-        assert!(approx(p.lat, 51.5), "lat={}", p.lat);
-        assert!(approx(p.lon, 0.25), "lon={}", p.lon);
+        assert!(approx(p.lat.0, 51.5), "lat={:?}", p.lat);
+        assert!(approx(p.lon.0, 0.25), "lon={:?}", p.lon);
     }
 
     #[test]
@@ -177,8 +212,8 @@ mod tests {
     #[test]
     fn compressed_pos_known_position() {
         let p = Position::try_from(COMPRESSED_49N_123W).unwrap();
-        assert!(approx(p.lat, 49.0), "lat={}", p.lat);
-        assert!(approx(p.lon, -123.0), "lon={}", p.lon);
+        assert!(approx(p.lat.0, 49.0), "lat={:?}", p.lat);
+        assert!(approx(p.lon.0, -123.0), "lon={:?}", p.lon);
         assert_eq!(p.sym_table, '/');
         assert_eq!(p.sym_code, '-');
         assert_eq!(p.comment, "");
@@ -211,5 +246,20 @@ mod tests {
         b[3] = 0x7C; // '|' = 124 > 123
         let s = String::from_utf8_lossy(&b).into_owned();
         assert!(Position::try_from(s.as_str()).is_err());
+    }
+
+    #[test]
+    fn coord_north() {
+        assert_eq!(format_coord(49.0, 'N', 'S'), "49.0000°N");
+    }
+
+    #[test]
+    fn coord_south() {
+        assert_eq!(format_coord(-33.5, 'N', 'S'), "33.5000°S");
+    }
+
+    #[test]
+    fn coord_west() {
+        assert_eq!(format_coord(-123.5, 'E', 'W'), "123.5000°W");
     }
 }

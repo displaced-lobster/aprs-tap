@@ -1,7 +1,5 @@
 use crate::{altitude::Altitude, position::Position, symbol::Symbol, weather::Weather};
 
-use super::format_coord;
-
 pub fn format_object(data: &str) -> String {
     // OBJECTNAM*DDHHMMzDDMM.hhN/DDDMM.hhWCS[comment]
     // 9-char name, 1-char live/killed, 7-char timestamp, then position
@@ -20,11 +18,7 @@ pub fn format_object(data: &str) -> String {
             sym_code,
             comment,
         }) => {
-            let pos = format!(
-                "{}, {}",
-                format_coord(lat, 'N', 'S'),
-                format_coord(lon, 'E', 'W')
-            );
+            let pos = format!("{lat}, {lon}");
             let state = if killed { " [killed]" } else { "" };
             let type_tag = Symbol::try_from((sym_table, sym_code))
                 .map(|l| format!(" [{}]", l))
@@ -42,11 +36,14 @@ pub fn format_object(data: &str) -> String {
                 match (alt.comment.is_empty(), alt_str) {
                     (true, None) => format!("{}{}{}: {}", name, state, type_tag, pos),
                     (false, None) => {
-                        format!("{}{}{}: {} — {}", name, state, type_tag, pos, comment)
+                        format!("{}{}{}: {} — {}", name, state, type_tag, pos, alt.comment)
                     }
-                    (true, Some(a)) => format!("{}{}{}: {}{}", name, state, type_tag, pos, a),
+                    (true, Some(a)) => format!("{}{}{}: {} — {}", name, state, type_tag, pos, a),
                     (false, Some(a)) => {
-                        format!("{}{}{}: {} — {}{}", name, state, type_tag, pos, comment, a)
+                        format!(
+                            "{}{}{}: {} — {} | {}",
+                            name, state, type_tag, pos, alt.comment, a
+                        )
                     }
                 }
             }
@@ -64,11 +61,7 @@ pub fn format_position(data: &str) -> String {
             sym_code,
             comment,
         }) => {
-            let pos = format!(
-                "{}, {}",
-                format_coord(lat, 'N', 'S'),
-                format_coord(lon, 'E', 'W')
-            );
+            let pos = format!("{lat}, {lon}");
             if sym_code == '_' {
                 let wx = Weather::from(comment).format();
                 if wx.is_empty() {
@@ -82,13 +75,13 @@ pub fn format_position(data: &str) -> String {
                 let alt_str = alt.alt_string();
                 match (label, alt.comment.is_empty(), alt_str) {
                     (Ok(l), true, None) => format!("{} [{}]", pos, l),
-                    (Ok(l), false, None) => format!("{} [{}] — {}", pos, l, comment),
-                    (Ok(l), true, Some(a)) => format!("{} [{}]{}", pos, l, a),
-                    (Ok(l), false, Some(a)) => format!("{} [{}] — {}{}", pos, l, comment, a),
+                    (Ok(l), false, None) => format!("{} [{}] — {}", pos, l, alt.comment),
+                    (Ok(l), true, Some(a)) => format!("{} [{}] — {}", pos, l, a),
+                    (Ok(l), false, Some(a)) => format!("{} [{}] — {} | {}", pos, l, alt.comment, a),
                     (Err(_), true, None) => pos,
-                    (Err(_), false, None) => format!("{} — {}", pos, comment),
-                    (Err(_), true, Some(a)) => format!("{}{}", pos, a),
-                    (Err(_), false, Some(a)) => format!("{} — {}{}", pos, comment, a),
+                    (Err(_), false, None) => format!("{} — {}", pos, alt.comment),
+                    (Err(_), true, Some(a)) => format!("{} — {}", pos, a),
+                    (Err(_), false, Some(a)) => format!("{} — {} | {}", pos, alt.comment, a),
                 }
             }
         }

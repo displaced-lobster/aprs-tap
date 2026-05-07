@@ -1,6 +1,7 @@
-use crate::direction::Direction;
-
-use super::format_coord;
+use crate::{
+    direction::Direction,
+    position::{Latitude, Longitude},
+};
 
 pub fn format_mice(dest: &str, data: &str) -> String {
     let db = dest.as_bytes();
@@ -20,7 +21,7 @@ pub fn format_mice(dest: &str, data: &str) -> String {
 
     let lat_deg = (d1 * 10 + d2) as f64;
     let lat_min = (d3 * 10 + d4) as f64 + (d5 * 10 + d6) as f64 / 100.0;
-    let lat = (lat_deg + lat_min / 60.0) * if north { 1.0 } else { -1.0 };
+    let lat = Latitude::from((lat_deg + lat_min / 60.0) * if north { 1.0 } else { -1.0 });
 
     // Longitude from info bytes 0-2
     let mut lon_deg = ib[0] as f64 - 28.0;
@@ -37,7 +38,9 @@ pub fn format_mice(dest: &str, data: &str) -> String {
     }
 
     let lon_hund = ib[2] as f64 - 28.0;
-    let lon = (lon_deg + (lon_min + lon_hund / 100.0) / 60.0) * if west { -1.0 } else { 1.0 };
+    let lon = Longitude::from(
+        (lon_deg + (lon_min + lon_hund / 100.0) / 60.0) * if west { -1.0 } else { 1.0 },
+    );
 
     // Speed (knots) and course (degrees) from info bytes 3-5
     let sp = (ib[3] as i32 - 28) * 10;
@@ -52,11 +55,7 @@ pub fn format_mice(dest: &str, data: &str) -> String {
         course -= 400;
     }
 
-    let pos = format!(
-        "{}, {}",
-        format_coord(lat, 'N', 'S'),
-        format_coord(lon, 'E', 'W')
-    );
+    let pos = format!("{lat}, {lon}");
     let motion = if speed_kn == 0 {
         "Stationary".to_string()
     } else {

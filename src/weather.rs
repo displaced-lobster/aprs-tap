@@ -1,11 +1,42 @@
 use crate::direction::Direction;
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum Temperature {
+    Celsius(i32),
+    Fahrenheit(i32),
+}
+
+impl Temperature {
+    fn celsius(&self) -> f64 {
+        match self {
+            Temperature::Celsius(c) => *c as f64,
+            Temperature::Fahrenheit(f) => (*f as f64 - 32.0) * 5.0 / 9.0,
+        }
+    }
+
+    fn fahrenheit(&self) -> i32 {
+        match self {
+            Temperature::Celsius(c) => *c * 9 / 5 + 32,
+            Temperature::Fahrenheit(f) => *f,
+        }
+    }
+}
+
+impl std::str::FromStr for Temperature {
+    type Err = std::num::ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse::<i32>().map(|t| Self::Fahrenheit(t))
+    }
+}
+
 #[derive(Default)]
 pub struct Weather {
-    wind_dir: Option<u16>,
+    wind_dir: Option<Direction>,
     wind_speed: Option<u16>,
     wind_gust: Option<u16>,
-    temp_f: Option<i32>,
+    temp: Option<Temperature>,
     rain_1h: Option<f32>,
     rain_24h: Option<f32>,
     rain_midnight: Option<f32>,
@@ -17,10 +48,8 @@ impl Weather {
     pub fn format(&self) -> String {
         let mut parts: Vec<String> = Vec::new();
 
-        if let Some(t) = self.temp_f {
-            let c = (t as f32 - 32.0) * 5.0 / 9.0;
-
-            parts.push(format!("{:.1}°C ({t}°F)", c));
+        if let Some(t) = self.temp {
+            parts.push(format!("{:.1}°C ({}°F)", t.celsius(), t.fahrenheit()));
         }
 
         // APRS encodes 100% humidity as 00
@@ -93,9 +122,9 @@ impl From<&str> for Weather {
                 b'g' if w.wind_gust.is_none() => {
                     w.wind_gust = s.get(i + 1..i + 4).and_then(|v| v.parse().ok());
                 }
-                b't' if w.temp_f.is_none() => {
+                b't' if w.temp.is_none() => {
                     // Try lengths 4, 3, 2 to handle both tXXX and t-XX, t-XXX
-                    w.temp_f = [4usize, 3, 2]
+                    w.temp = [4usize, 3, 2]
                         .iter()
                         .find_map(|&len| s.get(i + 1..i + 1 + len)?.parse().ok());
                 }
@@ -147,10 +176,10 @@ mod tests {
     #[test]
     fn weather_ddd_sss_prefix() {
         let w = Weather::from("270/015g022t072h65b10152");
-        assert_eq!(w.wind_dir, Some(270));
+        assert_eq!(w.wind_dir, Some(Direction::from(270)));
         assert_eq!(w.wind_speed, Some(15));
         assert_eq!(w.wind_gust, Some(22));
-        assert_eq!(w.temp_f, Some(72));
+        assert_eq!(w.temp, Some(Temperature::Fahrenheit(72)));
         assert_eq!(w.humidity, Some(65));
         assert!(
             approx(w.pressure.unwrap() as f64, 1015.2),
@@ -163,10 +192,10 @@ mod tests {
     fn weather_full_real_packet() {
         // VA7ASI-WX session packet weather data
         let w = Weather::from("012/000g003t055r000p000P000h99b10191");
-        assert_eq!(w.wind_dir, Some(12));
+        assert_eq!(w.wind_dir, Some(Direction::from(12)));
         assert_eq!(w.wind_speed, Some(0));
         assert_eq!(w.wind_gust, Some(3));
-        assert_eq!(w.temp_f, Some(55));
+        assert_eq!(w.temp, Some(Temperature::Fahrenheit(55)));
         assert_eq!(w.rain_1h, Some(0.0));
         assert_eq!(w.rain_24h, Some(0.0));
         assert_eq!(w.rain_midnight, Some(0.0));
@@ -181,7 +210,7 @@ mod tests {
     #[test]
     fn weather_negative_temp() {
         let w = Weather::from("t-24h50");
-        assert_eq!(w.temp_f, Some(-24));
+        assert_eq!(w.temp, Some(Temperature::Fahrenheit(-24)));
         assert_eq!(w.humidity, Some(50));
     }
 
@@ -189,7 +218,7 @@ mod tests {
     fn weather_empty_string() {
         let w = Weather::from("");
         assert!(w.wind_dir.is_none());
-        assert!(w.temp_f.is_none());
+        assert!(w.temp.is_none());
         assert!(w.pressure.is_none());
     }
 
@@ -208,7 +237,7 @@ mod tests {
     #[test]
     fn weather_line_temp_freezing() {
         let w = Weather {
-            temp_f: Some(32),
+            temp: Some(Temperature::Fahrenheit(32)),
             ..Default::default()
         };
         let s = w.format();
@@ -219,7 +248,7 @@ mod tests {
     #[test]
     fn weather_line_wind_calm() {
         let w = Weather {
-            wind_dir: Some(180),
+            wind_dir: Some(Direction::from(180)),
             wind_speed: Some(0),
             ..Default::default()
         };
@@ -230,7 +259,7 @@ mod tests {
     #[test]
     fn weather_line_wind_with_speed_and_gust() {
         let w = Weather {
-            wind_dir: Some(270),
+            wind_dir: Some(Direction::from(270)),
             wind_speed: Some(15),
             wind_gust: Some(25),
             ..Default::default()
