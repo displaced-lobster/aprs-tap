@@ -4,14 +4,7 @@ use colored::Colorize;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 
-pub mod altitude;
-pub mod aprs;
-pub mod direction;
-pub mod position;
-pub mod symbol;
-pub mod weather;
-
-use aprs::AprsPacket;
+use aprs_tap::aprs::AprsPacket;
 
 #[derive(Parser)]
 #[command(name = "aprs-tap", about = "APRS-IS stream reader")]
