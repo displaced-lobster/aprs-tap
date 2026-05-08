@@ -1,7 +1,5 @@
-use axum::{Json, Router, routing::get};
 use clap::Parser;
 use colored::Colorize;
-use serde::Serialize;
 use std::net::SocketAddr;
 
 #[derive(Parser)]
@@ -34,20 +32,38 @@ struct Args {
     /// Server-side filter string, e.g. "r/38.9/-77.0/100"
     #[arg(short, long, env = "APRS_FILTER")]
     filter: Option<String>,
+
+    /// Database connection URL (sqlite://./dev.db or postgres://user:pass@host/db)
+    #[arg(long, env = "DATABASE_URL", default_value = "sqlite://./dev.db")]
+    database_url: String,
+
+    /// JWT signing secret
+    #[arg(long, env = "JWT_SECRET")]
+    jwt_secret: String,
 }
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().ok();
     let args = Args::parse();
 
     print_banner();
     print_config(&args);
 
+    let db = aprs_tap::db::connect(&args.database_url)
+        .await
+        .expect("failed to connect to database");
+
+    let state = aprs_tap::db::AppState {
+        db,
+        jwt_secret: args.jwt_secret.clone(),
+    };
+
     let addr: SocketAddr = format!("{}:{}", args.host, args.port)
         .parse()
         .expect("invalid bind address");
 
-    let app = Router::new().route("/health", get(health));
+    let app = aprs_tap::routes::router(state);
 
     println!(
         "\n{} listening on {}\n",
@@ -57,15 +73,6 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse { status: "ok" })
-}
-
-#[derive(Serialize)]
-struct HealthResponse {
-    status: &'static str,
 }
 
 fn print_banner() {
@@ -94,4 +101,6 @@ fn print_config(args: &Args) {
     if let Some(f) = &args.filter {
         println!("  {}     {}", label("filter"), val(f));
     }
+    println!("  {}    {}", label("database"), val(&args.database_url));
+    println!("  {}  {}", label("jwt secret"), val("[set]"));
 }

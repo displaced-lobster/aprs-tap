@@ -1,5 +1,7 @@
 # just manual: https://github.com/casey/just/#readme
 
+set dotenv-load
+
 _default:
     @just --list
 
@@ -18,3 +20,7 @@ server:
 # Run the server with hot reload (requires cargo-watch: cargo install cargo-watch)
 dev:
     cargo watch -x "run --features server --bin server"
+
+# Run database migrations
+migrate:
+    cargo run --features server --bin migrate
