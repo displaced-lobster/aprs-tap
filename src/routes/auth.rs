@@ -2,6 +2,7 @@ use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use rand::Rng;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::Deserialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -11,25 +12,41 @@ use crate::{
     error::AppError,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SignupRequest {
-    callsign: String,
-    password: String,
-    password_confirm: String,
+    /// APRS callsign (normalised to uppercase)
+    pub callsign: String,
+    #[schema(write_only)]
+    pub password: String,
+    #[schema(write_only)]
+    pub password_confirm: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct LoginRequest {
-    callsign: String,
-    password: String,
+    pub callsign: String,
+    #[schema(write_only)]
+    pub password: String,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, ToSchema)]
 pub struct AuthResponse {
-    user: user::UserResponse,
-    token: String,
+    pub user: user::UserResponse,
+    /// Signed JWT valid for 24 hours
+    pub token: String,
 }
 
+#[utoipa::path(
+    post,
+    path = "/auth/signup",
+    request_body = SignupRequest,
+    responses(
+        (status = 201, description = "Account created", body = AuthResponse),
+        (status = 400, description = "Passwords do not match"),
+        (status = 409, description = "Callsign already registered"),
+    ),
+    tag = "auth",
+)]
 pub async fn signup(
     State(state): State<AppState>,
     Json(body): Json<SignupRequest>,
@@ -68,6 +85,16 @@ pub async fn signup(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/auth/login",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = AuthResponse),
+        (status = 401, description = "Invalid credentials"),
+    ),
+    tag = "auth",
+)]
 pub async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,

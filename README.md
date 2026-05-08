@@ -76,3 +76,62 @@ See the full filter reference at <https://www.aprs-is.net/javAPRSFilter.aspx>.
 ## Authentication
 
 Port `14580` supports server-side filters but requires a valid passcode to transmit. For receive-only use, `N0CALL` / `-1` is sufficient. Passcodes are derived from your callsign — generate one at <https://apps.magicbug.co.uk/passcode/>.
+
+---
+
+## HTTP server
+
+An optional Axum HTTP server is included, gated behind the `server` feature flag.
+
+### Requirements
+
+- [just](https://github.com/casey/just) — task runner
+- A `.env` file in the project root (see below)
+
+### Setup
+
+Copy the example environment and fill in your values:
+
+```
+JWT_SECRET=change-me-in-production
+DATABASE_URL=sqlite://./dev.db
+```
+
+Run migrations (creates the database if it doesn't exist):
+
+```
+just migrate
+```
+
+### Running
+
+```
+just server        # single run
+just dev           # hot reload (requires cargo-install cargo-watch)
+```
+
+### Configuration
+
+All options fall back to environment variables, then to defaults.
+
+| Flag | Env var | Default | Description |
+|------|---------|---------|-------------|
+| `--host` | `BIND_ADDR` | `0.0.0.0` | Address to bind on |
+| `-p`, `--port` | `PORT` | `3000` | HTTP port |
+| `--aprs-server` | `APRS_SERVER` | `rotate.aprs2.net` | APRS-IS hostname |
+| `--aprs-port` | `APRS_PORT` | `14580` | APRS-IS port |
+| `-u`, `--callsign` | `APRS_CALLSIGN` | `N0CALL` | APRS callsign |
+| `--passcode` | `APRS_PASSCODE` | `-1` | APRS passcode |
+| `-f`, `--filter` | `APRS_FILTER` | — | Server-side filter |
+| `--database-url` | `DATABASE_URL` | `sqlite://./dev.db` | SQLite or Postgres connection URL |
+| `--jwt-secret` | `JWT_SECRET` | *(required)* | JWT signing secret |
+
+For Postgres, set `DATABASE_URL=postgres://user:password@host/dbname`.
+
+### API docs
+
+| URL | Description |
+|-----|-------------|
+| `/swagger-ui` | Swagger UI |
+| `/api-docs/openapi.json` | Raw OpenAPI spec |
+

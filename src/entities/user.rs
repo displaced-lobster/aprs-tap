@@ -34,7 +34,7 @@ impl ActiveModelBehavior for ActiveModel {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct UserResponse {
     pub callsign: String,
     pub slug: String,

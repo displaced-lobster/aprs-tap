@@ -15,6 +15,8 @@ server = [
     "dep:rand",
     "dep:uuid",
     "dep:dotenvy",
+    "dep:utoipa",
+    "dep:utoipa-swagger-ui",
 ]
 
 [dependencies]
@@ -31,6 +33,8 @@ jsonwebtoken = { version = "9", optional = true }
 rand = { version = "0.8", optional = true }
 uuid = { version = "1", features = ["v4"], optional = true }
 dotenvy = { version = "0.15", optional = true }
+utoipa = { version = "5", features = ["axum_extras"], optional = true }
+utoipa-swagger-ui = { version = "9", features = ["axum"], optional = true }
 
 [[bin]]
 name = "cli"
