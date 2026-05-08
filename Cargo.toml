@@ -37,8 +37,8 @@ utoipa = { version = "5", features = ["axum_extras", "chrono"], optional = true 
 utoipa-swagger-ui = { version = "9", features = ["axum"], optional = true }
 
 [[bin]]
-name = "cli"
-path = "src/bin/cli.rs"
+name = "aprs-tap"
+path = "src/bin/aprs-tap.rs"
 
 [[bin]]
 name = "server"

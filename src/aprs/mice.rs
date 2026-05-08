@@ -24,6 +24,10 @@ impl<'a> MicE<'a> {
         }
     }
 
+    pub fn position(&self) -> &Position<'a> {
+        &self.position
+    }
+
     pub fn format(&self) -> String {
         let pos_motion = format!(
             "{}, {} - {}",

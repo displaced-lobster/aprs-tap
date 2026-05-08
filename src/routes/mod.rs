@@ -3,13 +3,14 @@ pub mod positions;
 
 use axum::{
     Json, Router,
+    extract::State,
     routing::{get, post},
 };
 use serde::Serialize;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::db::AppState;
+use crate::{db::AppState, worker::WorkerStatus};
 
 pub fn router(state: AppState) -> Router {
     Router::new()
@@ -31,6 +32,7 @@ pub fn router(state: AppState) -> Router {
     ),
     components(schemas(
         HealthResponse,
+        WorkerStatus,
         auth::SignupRequest,
         auth::LoginRequest,
         auth::AuthResponse,
@@ -54,11 +56,16 @@ struct ApiDoc;
     ),
     tag = "health",
 )]
-async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse { status: "ok" })
+async fn health(State(state): State<AppState>) -> Json<HealthResponse> {
+    let worker = state.worker_status.read().unwrap().clone();
+    Json(HealthResponse {
+        status: "ok",
+        worker,
+    })
 }
 
 #[derive(Serialize, utoipa::ToSchema)]
 struct HealthResponse {
     status: &'static str,
+    worker: WorkerStatus,
 }

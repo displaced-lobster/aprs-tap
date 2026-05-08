@@ -1,6 +1,9 @@
 use clap::Parser;
 use colored::Colorize;
-use std::net::SocketAddr;
+use std::{
+    net::SocketAddr,
+    sync::{Arc, RwLock},
+};
 
 #[derive(Parser)]
 #[command(name = "aprs-server", about = "APRS-IS HTTP server")]
@@ -54,10 +57,28 @@ async fn main() {
         .await
         .expect("failed to connect to database");
 
+    let worker_notify = Arc::new(tokio::sync::Notify::new());
+    let worker_status = Arc::new(RwLock::new(aprs_tap::worker::WorkerStatus::Waiting));
+
     let state = aprs_tap::db::AppState {
-        db,
+        db: db.clone(),
         jwt_secret: args.jwt_secret.clone(),
+        worker_notify: Arc::clone(&worker_notify),
+        worker_status: Arc::clone(&worker_status),
     };
+
+    let worker_config = aprs_tap::worker::WorkerConfig {
+        aprs_server: args.aprs_server.clone(),
+        aprs_port: args.aprs_port,
+        callsign: args.callsign.clone(),
+        passcode: args.passcode.clone(),
+    };
+    tokio::spawn(aprs_tap::worker::run(
+        db,
+        worker_config,
+        worker_notify,
+        worker_status,
+    ));
 
     let addr: SocketAddr = format!("{}:{}", args.host, args.port)
         .parse()

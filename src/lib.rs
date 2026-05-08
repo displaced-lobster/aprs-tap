@@ -12,3 +12,5 @@ pub mod error;
 pub mod migrator;
 #[cfg(feature = "server")]
 pub mod routes;
+#[cfg(feature = "server")]
+pub mod worker;

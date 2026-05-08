@@ -9,6 +9,10 @@ pub struct Object<'a> {
 }
 
 impl<'a> Object<'a> {
+    pub fn position(&self) -> &Position<'a> {
+        &self.position
+    }
+
     pub fn format(&self) -> String {
         let pos = format!("{}, {}", self.position.lat, self.position.lon);
         let state = if self.live { "" } else { " [killed]" };

@@ -71,6 +71,8 @@ pub async fn signup(
     .insert(&state.db)
     .await?;
 
+    state.worker_notify.notify_one();
+
     let token = create_token(&model.id, &model.callsign, &state.jwt_secret).map_err(|e| {
         eprintln!("token creation failed: {e}");
         AppError::Internal

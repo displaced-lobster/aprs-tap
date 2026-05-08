@@ -1,6 +1,6 @@
 use colored::Colorize;
 
-use super::AprsInfo;
+use super::{AprsInfo, Position};
 
 pub struct AprsPacket<'a> {
     source: &'a str,
@@ -31,6 +31,19 @@ impl AprsPacket<'_> {
             self.info.format(),
         );
         println!();
+    }
+
+    pub fn source(&self) -> &str {
+        self.source
+    }
+
+    pub fn try_position(&self) -> Option<&Position<'_>> {
+        match &self.info {
+            AprsInfo::Position(pos) => Some(pos),
+            AprsInfo::MicE(mice) => Some(mice.position()),
+            AprsInfo::Object(obj) => Some(obj.position()),
+            _ => None,
+        }
     }
 }
 

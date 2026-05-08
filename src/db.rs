@@ -1,13 +1,16 @@
 use sea_orm::{ConnectOptions, DatabaseConnection};
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
+use tokio::sync::Notify;
 
-use crate::migrator::Migrator;
+use crate::{migrator::Migrator, worker::StatusHandle};
 use sea_orm_migration::MigratorTrait;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: DatabaseConnection,
     pub jwt_secret: String,
+    pub worker_notify: Arc<Notify>,
+    pub worker_status: StatusHandle,
 }
 
 pub async fn connect(database_url: &str) -> Result<DatabaseConnection, sea_orm::DbErr> {
