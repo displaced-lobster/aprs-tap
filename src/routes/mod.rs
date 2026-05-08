@@ -1,6 +1,10 @@
 pub mod auth;
+pub mod positions;
 
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use serde::Serialize;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -12,6 +16,7 @@ pub fn router(state: AppState) -> Router {
         .route("/health", get(health))
         .route("/auth/signup", post(auth::signup))
         .route("/auth/login", post(auth::login))
+        .route("/positions", get(positions::list))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
 }
@@ -22,6 +27,7 @@ pub fn router(state: AppState) -> Router {
         health,
         auth::signup,
         auth::login,
+        positions::list,
     ),
     components(schemas(
         HealthResponse,
@@ -29,10 +35,12 @@ pub fn router(state: AppState) -> Router {
         auth::LoginRequest,
         auth::AuthResponse,
         crate::entities::user::UserResponse,
+        crate::entities::position::PositionResponse,
     )),
     tags(
         (name = "auth", description = "Registration and login"),
         (name = "health", description = "Health check"),
+        (name = "positions", description = "Position history"),
     ),
     info(title = "aprs-tap", version = "0.1.0"),
 )]

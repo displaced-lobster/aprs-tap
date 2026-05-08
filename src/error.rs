@@ -9,6 +9,7 @@ pub enum AppError {
     BadRequest(&'static str),
     Conflict(&'static str),
     Unauthorized,
+    NotFound,
     Internal,
 }
 
@@ -23,6 +24,7 @@ impl IntoResponse for AppError {
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.to_string()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.to_string()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "invalid credentials".to_string()),
+            AppError::NotFound => (StatusCode::NOT_FOUND, "not found".to_string()),
             AppError::Internal => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "internal error".to_string(),
