@@ -5,6 +5,14 @@ A terminal viewer for [APRS-IS](https://www.aprs-is.net/) streams. Connects to a
 ## Install
 
 ```
+cargo install --git https://github.com/displaced-lobster/aprs-tap
+```
+
+Or clone and install locally:
+
+```
+git clone https://github.com/displaced-lobster/aprs-tap
+cd aprs-tap
 cargo install --path .
 ```
 
