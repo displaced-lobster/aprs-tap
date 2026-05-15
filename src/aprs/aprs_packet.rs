@@ -1,14 +1,12 @@
 use colored::Colorize;
 
-use super::{AprsPacketType, formatters::*};
-use crate::weather::Weather;
+use super::AprsInfo;
 
 pub struct AprsPacket<'a> {
     source: &'a str,
     destination: &'a str,
     path: Vec<&'a str>,
-    info: &'a str,
-    packet_type: AprsPacketType,
+    info: AprsInfo<'a>,
 }
 
 impl AprsPacket<'_> {
@@ -29,31 +27,10 @@ impl AprsPacket<'_> {
         );
         println!(
             "           {} {}",
-            format!("[{}]", self.packet_type).color(self.packet_type.color()),
-            self.format_info(),
+            format!("[{}]", self.info.type_str()).color(self.info.color()),
+            self.info.format(),
         );
         println!();
-    }
-
-    pub fn format_info(&self) -> String {
-        let info = self.info;
-        let Some(dti) = info.chars().next() else {
-            return String::new();
-        };
-        let data = &info[dti.len_utf8()..];
-
-        match dti {
-            '!' | '=' => format_position(data),
-            // Skip 7-char timestamp (DDHHMMz, HHMMSSh, etc.)
-            '/' | '@' => format_position(if data.len() > 7 { &data[7..] } else { data }),
-            ':' => format_message(data),
-            ';' => format_object(data),
-            // Positionless weather: skip 8-char timestamp (MMDDHHMMz)
-            '_' => Weather::from(if data.len() > 8 { &data[8..] } else { data }).format(),
-            '`' | '\'' => format_mice(self.destination, data),
-            '<' => format_capabilities(data),
-            _ => info.to_string(),
-        }
     }
 }
 
@@ -70,15 +47,13 @@ impl<'a> TryFrom<&'a str> for AprsPacket<'a> {
         let path_items: Vec<&str> = path_part.split(',').collect();
         let destination = path_items.first().ok_or(())?;
         let path = path_items[1..].to_vec();
-        let dti = info.chars().next().unwrap_or(' ');
-        let packet_type = AprsPacketType::from(dti);
+        let info = AprsInfo::new(destination, info);
 
         Ok(Self {
             source,
             destination,
             path,
             info,
-            packet_type,
         })
     }
 }
@@ -95,7 +70,6 @@ mod tests {
         assert_eq!(pkt.source, "VA7ASI-1");
         assert_eq!(pkt.destination, "APWW11");
         assert_eq!(pkt.path, vec!["TCPIP*", "qAC", "T2CHILE"]);
-        assert_eq!(pkt.info, ";hello");
     }
 
     #[test]
@@ -104,7 +78,6 @@ mod tests {
         assert_eq!(pkt.source, "N0CALL");
         assert_eq!(pkt.destination, "APRS");
         assert!(pkt.path.is_empty());
-        assert_eq!(pkt.info, "!data");
     }
 
     #[test]
@@ -124,15 +97,14 @@ mod tests {
             source,
             destination: dest,
             path: vec![],
-            info,
-            packet_type: AprsPacketType::from(info.chars().next().unwrap_or(' ')),
+            info: AprsInfo::new(dest, info),
         }
     }
 
     #[test]
     fn format_info_uncompressed_position() {
         let p = pkt("VA7TEST", "APWW11", "!4854.41N/12332.35W>");
-        let r = p.format_info();
+        let r = p.info.format();
         assert!(r.contains("48.9068°N"), "got: {r}");
         assert!(r.contains("123.5392°W"), "got: {r}");
         assert!(r.contains("Car"), "got: {r}");
@@ -142,7 +114,7 @@ mod tests {
     fn format_info_weather_positionless() {
         // DTI '_' + 8-char timestamp + weather fields
         let p = pkt("VA7WX", "APWW11", "_01010000g003t055r000p000P000h99b10191");
-        let r = p.format_info();
+        let r = p.info.format();
         // 55°F → 12.8°C
         assert!(r.contains("12.8°C"), "got: {r}");
     }
@@ -150,7 +122,7 @@ mod tests {
     #[test]
     fn format_info_capabilities() {
         let p = pkt("K7ABC-12", "APRS", "<IGATE,MSG_CNT=5");
-        let r = p.format_info();
+        let r = p.info.format();
         assert!(r.contains("iGate"), "got: {r}");
         assert!(r.contains("Messages gated: 5"), "got: {r}");
     }
@@ -158,7 +130,7 @@ mod tests {
     #[test]
     fn format_info_message() {
         let p = pkt("VA7SRC", "APRS", ":VA7DEST  :Hello World{001}");
-        let r = p.format_info();
+        let r = p.info.format();
         assert!(r.contains("VA7DEST"), "got: {r}");
         assert!(r.contains("Hello World"), "got: {r}");
     }

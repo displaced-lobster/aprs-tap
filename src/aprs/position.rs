@@ -1,4 +1,6 @@
-#[derive(Clone, Copy, Debug)]
+use super::{Altitude, Symbol, Weather};
+
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Latitude(pub f64);
 
 impl From<f64> for Latitude {
@@ -13,7 +15,7 @@ impl std::fmt::Display for Latitude {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Longitude(pub f64);
 
 impl From<f64> for Longitude {
@@ -28,15 +30,43 @@ impl std::fmt::Display for Longitude {
     }
 }
 
+#[derive(Default)]
 pub struct Position<'a> {
     pub lat: Latitude,
     pub lon: Longitude,
     pub sym_table: char,
     pub sym_code: char,
     pub comment: &'a str,
+    pub timestamp: Option<&'a str>,
 }
 
 impl<'a> Position<'a> {
+    pub fn format(&self) -> String {
+        let pos = format!("{}, {}", self.lat, self.lon);
+        if self.sym_code == '_' {
+            let wx = Weather::from(self.comment).format();
+            if wx.is_empty() {
+                pos
+            } else {
+                format!("{} | {}", pos, wx)
+            }
+        } else {
+            let alt = Altitude::from(self.comment);
+            let label = Symbol::try_from((self.sym_table, self.sym_code));
+            let alt_str = alt.alt_string();
+            match (label, alt.comment.is_empty(), alt_str) {
+                (Ok(l), true, None) => format!("{} [{}]", pos, l),
+                (Ok(l), false, None) => format!("{} [{}] — {}", pos, l, alt.comment),
+                (Ok(l), true, Some(a)) => format!("{} [{}] — {}", pos, l, a),
+                (Ok(l), false, Some(a)) => format!("{} [{}] — {} | {}", pos, l, alt.comment, a),
+                (Err(_), true, None) => pos,
+                (Err(_), false, None) => format!("{} — {}", pos, alt.comment),
+                (Err(_), true, Some(a)) => format!("{} — {}", pos, a),
+                (Err(_), false, Some(a)) => format!("{} — {} | {}", pos, alt.comment, a),
+            }
+        }
+    }
+
     // Parses APRS compressed position: SYYYYXXXXCS[comment]
     // S=sym_table, YYYY=lat(base91), XXXX=lon(base91), C=sym_code, csT=optional extension
     // Returns (lat, lon, sym_table, sym_code, comment)
@@ -81,6 +111,7 @@ impl<'a> Position<'a> {
             sym_table,
             sym_code,
             comment,
+            timestamp: None,
         })
     }
 
@@ -115,7 +146,14 @@ impl<'a> Position<'a> {
             sym_table,
             sym_code,
             comment,
+            timestamp: None,
         })
+    }
+
+    pub fn with_timestamp(mut self, timestamp: &'a str) -> Self {
+        self.timestamp = Some(timestamp);
+
+        self
     }
 }
 
