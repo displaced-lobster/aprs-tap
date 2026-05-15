@@ -13,10 +13,8 @@ use tokio::{
 };
 use uuid::Uuid;
 
-use crate::{
-    aprs::{Altitude, AprsPacket},
-    entities::{position, user},
-};
+use super::entities::{position, user};
+use crate::aprs::{Altitude, AprsPacket};
 
 pub type StatusHandle = Arc<RwLock<WorkerStatus>>;
 

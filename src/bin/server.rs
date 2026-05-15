@@ -53,27 +53,27 @@ async fn main() {
     print_banner();
     print_config(&args);
 
-    let db = aprs_tap::db::connect(&args.database_url)
+    let db = aprs_tap::server::db::connect(&args.database_url)
         .await
         .expect("failed to connect to database");
 
     let worker_notify = Arc::new(tokio::sync::Notify::new());
-    let worker_status = Arc::new(RwLock::new(aprs_tap::worker::WorkerStatus::Waiting));
+    let worker_status = Arc::new(RwLock::new(aprs_tap::server::worker::WorkerStatus::Waiting));
 
-    let state = aprs_tap::db::AppState {
+    let state = aprs_tap::server::db::AppState {
         db: db.clone(),
         jwt_secret: args.jwt_secret.clone(),
         worker_notify: Arc::clone(&worker_notify),
         worker_status: Arc::clone(&worker_status),
     };
 
-    let worker_config = aprs_tap::worker::WorkerConfig {
+    let worker_config = aprs_tap::server::worker::WorkerConfig {
         aprs_server: args.aprs_server.clone(),
         aprs_port: args.aprs_port,
         callsign: args.callsign.clone(),
         passcode: args.passcode.clone(),
     };
-    tokio::spawn(aprs_tap::worker::run(
+    tokio::spawn(aprs_tap::server::worker::run(
         db,
         worker_config,
         worker_notify,
@@ -84,7 +84,7 @@ async fn main() {
         .parse()
         .expect("invalid bind address");
 
-    let app = aprs_tap::routes::router(state);
+    let app = aprs_tap::server::routes::router(state);
 
     println!(
         "\n{} listening on {}\n",

@@ -5,7 +5,7 @@ use serde::Deserialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{
+use crate::server::{
     auth::{create_token, hash_password, verify_password},
     db::AppState,
     entities::user,

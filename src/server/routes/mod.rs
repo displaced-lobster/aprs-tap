@@ -10,7 +10,7 @@ use serde::Serialize;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{db::AppState, worker::WorkerStatus};
+use crate::server::{db::AppState, worker::WorkerStatus};
 
 pub fn router(state: AppState) -> Router {
     Router::new()
@@ -36,8 +36,8 @@ pub fn router(state: AppState) -> Router {
         auth::SignupRequest,
         auth::LoginRequest,
         auth::AuthResponse,
-        crate::entities::user::UserResponse,
-        crate::entities::position::PositionResponse,
+        crate::server::entities::user::UserResponse,
+        crate::server::entities::position::PositionResponse,
     )),
     tags(
         (name = "auth", description = "Registration and login"),

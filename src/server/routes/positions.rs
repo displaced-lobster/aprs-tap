@@ -7,7 +7,7 @@ use sea_orm::{
 };
 use serde::Deserialize;
 
-use crate::{
+use crate::server::{
     db::AppState,
     entities::{
         position::{self, PositionResponse},

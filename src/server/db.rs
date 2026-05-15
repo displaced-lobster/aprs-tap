@@ -2,7 +2,7 @@ use sea_orm::{ConnectOptions, DatabaseConnection};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Notify;
 
-use crate::{migrator::Migrator, worker::StatusHandle};
+use super::{migrator::Migrator, worker::StatusHandle};
 use sea_orm_migration::MigratorTrait;
 
 #[derive(Clone)]

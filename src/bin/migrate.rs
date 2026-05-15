@@ -9,7 +9,7 @@ async fn main() {
 
     println!("  {}  {}", "database".bold(), database_url.cyan());
 
-    aprs_tap::db::connect(&database_url)
+    aprs_tap::server::db::connect(&database_url)
         .await
         .expect("failed to connect to database");
 
